@@ -17,11 +17,13 @@ st.sidebar.header('User Input Features')
 selected_year = st.sidebar.selectbox('Year', list(reversed(range(1950,2020))))
 
 # Web scraping of NBA player stats
-@st.cache_data
+@st.cache_data # <- 다운로드 받은 데이터를 캐쉬해서 리프레쉬 할 때 다시 불러오는 것을 방지 함
 def load_data(year):
     url = "https://www.basketball-reference.com/leagues/NBA_" + str(year) + "_per_game.html"
-    html = pd.read_html(url, header = 0)
+    html = pd.read_html(url, header = 0) # <- 0번째 데이터를 header 로 지정 ㅎ
     df = html[0]
+    # print(df)
+    # Dataframe 의 age column 에서 내용이 Age 이면 그 row 를 drop 시켜라
     raw = df.drop(df[df.Age == 'Age'].index) # Deletes repeating headers in content
     raw = raw.fillna(0)
     playerstats = raw.drop(['Rk'], axis=1)
@@ -29,7 +31,7 @@ def load_data(year):
 playerstats = load_data(selected_year)
 
 # Sidebar - Team selection
-sorted_unique_team = sorted(playerstats.Tm.unique())
+sorted_unique_team = sorted(playerstats.Tm.unique()) # <- Dataframe 의 컬럼을 이렇게 선택할 수도 있구나 ㅎㅎ
 selected_team = st.sidebar.multiselect('Team', sorted_unique_team, sorted_unique_team)
 
 # Sidebar - Position selection
@@ -37,11 +39,12 @@ unique_pos = ['C','PF','SF','PG','SG']
 selected_pos = st.sidebar.multiselect('Position', unique_pos, unique_pos)
 
 # Filtering data
+# 이 부분이 데이터 필터링 핵심이네.. isin..
 df_selected_team = playerstats[(playerstats.Tm.isin(selected_team)) & (playerstats.Pos.isin(selected_pos))]
 
 st.header('Display Player Stats of Selected Team(s)')
 st.write('Data Dimension: ' + str(df_selected_team.shape[0]) + ' rows and ' + str(df_selected_team.shape[1]) + ' columns.')
-st.dataframe(df_selected_team)
+st.dataframe(df_selected_team) # <- 음 Streamlit 로 dataframe 이네...
 
 # Download NBA player stats data
 # https://discuss.streamlit.io/t/how-to-download-file-in-streamlit/1806
@@ -61,8 +64,8 @@ if st.button('Intercorrelation Heatmap'):
 
     corr = df.corr()
     mask = np.zeros_like(corr)
-    mask[np.triu_indices_from(mask)] = True
+    mask[np.triu_indices_from(mask)] = True # <- 히트맵의 상단 날리기..
     with sns.axes_style("white"):
         f, ax = plt.subplots(figsize=(7, 5))
         ax = sns.heatmap(corr, mask=mask, vmax=1, square=True)
-    st.pyplot()
+    st.pyplot(f)
